@@ -28,7 +28,7 @@ OUT = ROOT / "report" / "PathSnap_Technical_Report_PT-021.pdf"
 REPO = "https://github.com/IAmKai1/MLhackathon-PES1UG24AM084-PES1UG24AM85-PES1UG24AM86-PES1UG24AM087"
 TEAM = "PT-021"
 MEMBERS = [("Dhareen G", "PES1UG24AM084"), ("Dhriti Kamani", "PES1UG24AM085"),
-           ("Dhruv Talavat", "PES1UG24AM086"), ("Dhruv Rajagopalan", "PES1UG24AM087")]
+           ("Dhruv Rajagopalan", "PES1UG24AM086"), ("Dhruv Talavat", "PES1UG24AM087")]
 
 ss = getSampleStyleSheet()
 H1 = ParagraphStyle("h1", parent=ss["Heading1"], fontSize=15, spaceBefore=6, spaceAfter=6)
@@ -280,8 +280,10 @@ def main():
     s += [PageBreak(), Paragraph("7. API, UI and Deployment", H1)]
     s += text("7_deployment", "Two-laptop architecture, endpoints (/trips, /predict), how ground truth stays "
                               "server-side, run commands (README).")
-    for name, cap in [("ui_screenshot.png", "Working UI on Laptop 2 showing a predicted route and results."),
-                      ("api_logs_screenshot.png", "API logs on Laptop 1 (receiving laptop) showing inference requests.")]:
+    for name, cap in [("ui_screenshot.png", "Working UI on Laptop 2 showing evaluator trip 15: predicted route and results."),
+                      ("ui_server_laptop2.png", "Laptop 2 serving the UI (python -m http.server 5500)."),
+                      ("api_logs_screenshot.png", "API logs on Laptop 1 (receiving laptop): GET /trips and POST /predict "
+                                                  "requests arriving from Laptop 2 (10.8.121.59).")]:
         p = FIG / name
         s += fig(p, cap) if p.exists() else [Paragraph(f"<b>ADD SCREENSHOT</b>: save it as report/figures/{name} - {cap}",
                                                        TODO)]

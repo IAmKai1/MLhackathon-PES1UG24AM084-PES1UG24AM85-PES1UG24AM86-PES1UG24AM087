@@ -55,8 +55,9 @@ const apiInput = $("#api");
 try { apiInput.value = localStorage.getItem("pathsnap_api") || "http://localhost:8000"; } catch { apiInput.value = "http://localhost:8000"; }
 
 const map = L.map("map").setView([55.75, 37.6], 11);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  { attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 19 }).addTo(map);
+// Standard OpenStreetMap tiles: no API key needed (CARTO's basemaps now require one)
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+  { attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 }).addTo(map);
 const gpsLayer = L.layerGroup().addTo(map), predLayer = L.layerGroup().addTo(map);
 L.control.layers(null, { "Raw GPS observations": gpsLayer, "Predicted route": predLayer }, { collapsed: false }).addTo(map);
 const legend = L.control({ position: "bottomleft" });
