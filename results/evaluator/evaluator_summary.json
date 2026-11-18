@@ -1,0 +1,17 @@
+{
+  "classifier_obs_acc_weighted": 0.9143718387574721,
+  "hmm_obs_acc_weighted": 0.956777193072089,
+  "classifier_continuity_mean": 0.9343684115518703,
+  "hmm_continuity_mean": 0.9641445134088306,
+  "classifier_route_f1_mean": 0.8760549168347053,
+  "hmm_route_f1_mean": 0.9102095240607289,
+  "trusted_fraction": 0.9948663210328352,
+  "model": "artifacts/final_model.joblib (unchanged)",
+  "decoder": {
+    "beta": 1.5,
+    "emission_weight": 2.0,
+    "cutoff_factor": 3.0,
+    "cutoff_base": 150.0,
+    "min_prob": 1e-06
+  }
+}
