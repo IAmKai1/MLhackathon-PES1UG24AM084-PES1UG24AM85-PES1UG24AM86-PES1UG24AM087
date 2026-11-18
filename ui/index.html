@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PathSnap Evaluator</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root { --surface:#fcfcfb; --panel:#f3f2ef; --text:#0b0b0b; --text2:#52514e; --line:#e4e3df;
+          --gps:#2a78d6; --pred:#eb6834; --accent:#2a78d6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.45 system-ui, sans-serif; color:var(--text); background:var(--surface); }
+  header { padding:12px 16px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:18px; margin:0 12px 0 0; }
+  header input { width:260px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; }
+  button { padding:6px 12px; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:6px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  main { display:grid; grid-template-columns:300px 1fr; height:calc(100vh - 58px); }
+  aside { border-right:1px solid var(--line); overflow:auto; padding:12px 16px; background:var(--panel); }
+  aside h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--text2); margin:16px 0 8px; }
+  .trip { display:flex; justify-content:space-between; padding:8px 10px; margin:4px 0; border:1px solid var(--line);
+          border-radius:6px; background:var(--surface); cursor:pointer; }
+  .trip.active { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+  .trip small { color:var(--text2); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td { padding:4px 0; border-bottom:1px solid var(--line); }
+  td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+  #status { color:var(--text2); font-size:13px; }
+  #map { height:100%; }
+  .legend { background:var(--surface); padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:12px; }
+  .sw { display:inline-block; width:14px; height:4px; margin-right:6px; vertical-align:middle; }
+  @media (max-width: 760px) { main { grid-template-columns:1fr; grid-template-rows:auto 60vh; height:auto; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>PathSnap Evaluator</h1>
+  <label>API <input id="api" placeholder="http://LAPTOP1-IP:8000"></label>
+  <button id="connect">Load trips</button>
+  <span id="status">Enter the API address of Laptop 1, then load trips.</span>
+</header>
+<main>
+  <aside>
+    <h2>Evaluation trips</h2>
+    <div id="trips"></div>
+    <h2>Results</h2>
+    <table id="results"><tr><td colspan="2">Select a trip.</td></tr></table>
+  </aside>
+  <div id="map"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const apiInput = $("#api");
+try { apiInput.value = localStorage.getItem("pathsnap_api") || "http://localhost:8000"; } catch { apiInput.value = "http://localhost:8000"; }
+
+const map = L.map("map").setView([55.75, 37.6], 11);
+L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  { attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 19 }).addTo(map);
+const gpsLayer = L.layerGroup().addTo(map), predLayer = L.layerGroup().addTo(map);
+L.control.layers(null, { "Raw GPS observations": gpsLayer, "Predicted route": predLayer }, { collapsed: false }).addTo(map);
+const legend = L.control({ position: "bottomleft" });
+legend.onAdd = () => { const d = L.DomUtil.create("div", "legend");
+  d.innerHTML = '<div><span class="sw" style="background:var(--gps)"></span>Raw GPS</div>' +
+                '<div><span class="sw" style="background:var(--pred)"></span>Predicted route</div>'; return d; };
+legend.addTo(map);
+
+const api = () => apiInput.value.replace(/\/+$/, "");
+const fmt = v => v == null ? "n/a"
+  : typeof v !== "number" ? v
+  : Number.isInteger(v) ? v.toLocaleString()
+  : Math.abs(v) <= 1 ? v.toFixed(4) : v.toFixed(2);
+
+$("#connect").onclick = async () => {
+  try { localStorage.setItem("pathsnap_api", api()); } catch {}
+  $("#status").textContent = "Connecting...";
+  try {
+    const r = await fetch(api() + "/trips");
+    if (!r.ok) throw new Error(r.status);
+    const { trips } = await r.json();
+    $("#trips").innerHTML = "";
+    trips.forEach(t => {
+      const el = document.createElement("div");
+      el.className = "trip";
+      el.innerHTML = `<span>Trip ${t.trip_id}</span><small>${t.n_observations.toLocaleString()} pts</small>`;
+      el.onclick = () => runTrip(t.trip_id, el);
+      $("#trips").appendChild(el);
+    });
+    $("#status").textContent = `Connected: ${trips.length} trips.`;
+  } catch (e) { $("#status").textContent = "Could not reach the API (" + e.message + ")."; }
+};
+
+async function runTrip(id, el) {
+  document.querySelectorAll(".trip").forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+  $("#status").textContent = `Running trip ${id} on the API...`;
+  $("#results").innerHTML = "<tr><td colspan='2'>Processing...</td></tr>";
+  try {
+    const r = await fetch(api() + "/predict", { method: "POST", headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ trip_id: id }) });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    gpsLayer.clearLayers(); predLayer.clearLayers();
+    d.gps.forEach(p => L.circleMarker(p, { radius: 2, color: "#2a78d6", weight: 0, fillOpacity: .8 }).addTo(gpsLayer));
+    d.predicted_route.forEach(line => L.polyline(line, { color: "#eb6834", weight: 4, opacity: .9 }).addTo(predLayer));
+    map.fitBounds(L.latLngBounds(d.gps));
+    const m = d.metrics;
+    const rows = [
+      ["Observations", d.n_observations],
+      ["Accuracy (classifier + HMM)", m.observation_accuracy_hmm],
+      ["Accuracy (classifier only)", m.observation_accuracy_classifier_only],
+      ["Route set F1", m.route_set_f1_hmm],
+      ["Route continuity (HMM)", m.route_continuity_hmm],
+      ["Route continuity (classifier)", m.route_continuity_classifier_only],
+      ["Scored observations", m.trusted_observations],
+      ["Chain breaks", m.chain_breaks],
+      ["API time (s)", d.timing_s.total],
+    ];
+    $("#results").innerHTML = rows.map(([k, v]) => `<tr><td>${k}</td><td>${fmt(v)}</td></tr>`).join("");
+    $("#status").textContent = `Trip ${id} done in ${d.timing_s.total}s.`;
+  } catch (e) {
+    $("#results").innerHTML = "<tr><td colspan='2'>Request failed.</td></tr>";
+    $("#status").textContent = "Prediction failed (" + e.message + ").";
+  }
+}
+</script>
+</body>
+</html>

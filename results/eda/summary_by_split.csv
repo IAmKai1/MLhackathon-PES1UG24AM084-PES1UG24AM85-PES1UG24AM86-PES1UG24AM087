@@ -1,0 +1,16 @@
+,student_test,train
+trips,10.0,80.0
+obs_total,19160.0,208417.0
+obs_median,1420.0,1529.0
+obs_min,262.0,361.0
+obs_max,3958.0,19313.0
+invalid_rows,0.0,0.0
+unsorted_steps,0.0,0.0
+frac_dt_1s_mean,0.9819896936551981,0.9383341170217598
+trips_with_gap_gt5s,2.0,45.0
+max_gap_s,210.0,153064.0
+arcs_median,13145.0,19526.5
+isolated_nodes,0.0,0.0
+weak_components_median,11.0,20.0
+route_agreement_median,0.9980663449322332,0.9986555661001352
+trips_poor_route_agreement,0.0,2.0

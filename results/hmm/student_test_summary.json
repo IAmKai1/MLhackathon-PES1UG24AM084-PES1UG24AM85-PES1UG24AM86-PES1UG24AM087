@@ -1,0 +1,15 @@
+{
+  "classifier_obs_acc_weighted": 0.9076421395887025,
+  "hmm_obs_acc_weighted": 0.9564508494188187,
+  "classifier_continuity_mean": 0.9414664426544777,
+  "hmm_continuity_mean": 0.9793218342848224,
+  "classifier_route_f1_mean": 0.9003320925208038,
+  "hmm_route_f1_mean": 0.9357241892796478,
+  "decoder": {
+    "beta": 1.5,
+    "emission_weight": 2.0,
+    "cutoff_factor": 3.0,
+    "cutoff_base": 150.0,
+    "min_prob": 1e-06
+  }
+}

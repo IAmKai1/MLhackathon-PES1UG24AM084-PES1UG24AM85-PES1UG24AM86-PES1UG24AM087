@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+# Raw dataset (90 MB) - place it under data/ as described in the README
+data/
+# Large regenerable intermediates
+results/features/*.pkl
+results/models/*.joblib
+results/models/*.npy
+results/bayes_opt/*.npy
+results/*.log
+
+.claude/
