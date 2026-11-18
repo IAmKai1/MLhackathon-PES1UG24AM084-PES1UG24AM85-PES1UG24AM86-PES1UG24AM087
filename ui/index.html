@@ -55,11 +55,26 @@ const apiInput = $("#api");
 try { apiInput.value = localStorage.getItem("pathsnap_api") || "http://localhost:8000"; } catch { apiInput.value = "http://localhost:8000"; }
 
 const map = L.map("map").setView([55.75, 37.6], 11);
-// Standard OpenStreetMap tiles: no API key needed (CARTO's basemaps now require one)
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-  { attribution: "&copy; OpenStreetMap contributors", maxZoom: 19 }).addTo(map);
+// Background tiles are optional decoration: GPS and the predicted route come from our API.
+// Esri tiles need no key (CARTO now needs one; OpenStreetMap's volunteer servers block many
+// local pages). If tiles keep failing, fall back to a plain background automatically.
+const esri = s => `https://server.arcgisonline.com/ArcGIS/rest/services/${s}/MapServer/tile/{z}/{y}/{x}`;
+const bases = {
+  "Light gray": L.tileLayer(esri("Canvas/World_Light_Gray_Base"), { attribution: "Tiles &copy; Esri", maxZoom: 16 }),
+  "Streets": L.tileLayer(esri("World_Street_Map"), { attribution: "Tiles &copy; Esri", maxZoom: 19 }),
+  "None": L.layerGroup(),
+};
+bases["Light gray"].addTo(map);
+let tileErrors = 0;
+Object.entries(bases).forEach(([name, layer]) => layer.on && layer.on("tileerror", () => {
+  if (++tileErrors >= 8 && map.hasLayer(layer)) {
+    map.removeLayer(layer); bases["None"].addTo(map);
+    $("#status").textContent += " (map background unavailable - showing plain background)";
+  }
+}));
+map.on("baselayerchange", () => { tileErrors = 0; });
 const gpsLayer = L.layerGroup().addTo(map), predLayer = L.layerGroup().addTo(map);
-L.control.layers(null, { "Raw GPS observations": gpsLayer, "Predicted route": predLayer }, { collapsed: false }).addTo(map);
+L.control.layers(bases, { "Raw GPS observations": gpsLayer, "Predicted route": predLayer }, { collapsed: false }).addTo(map);
 const legend = L.control({ position: "bottomleft" });
 legend.onAdd = () => { const d = L.DomUtil.create("div", "legend");
   d.innerHTML = '<div><span class="sw" style="background:var(--gps)"></span>Raw GPS</div>' +
