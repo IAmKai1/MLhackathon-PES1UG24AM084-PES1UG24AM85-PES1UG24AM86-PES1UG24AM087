@@ -5,7 +5,6 @@ __pycache__/
 data/
 # Large regenerable intermediates
 results/features/*.pkl
-results/models/*.joblib
 results/models/*.npy
 results/bayes_opt/*.npy
 results/*.log
