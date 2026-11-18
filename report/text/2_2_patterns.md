@@ -1,0 +1,7 @@
+The training partition has 80 trips with 208,417 GPS observations (median 1,529 per trip, range 361 to 19,313); the student-testing partition has 10 trips with 19,160 observations. Sampling is nominally 1 Hz: on average 93.8% of steps are exactly one second apart in training and 98.2% in student-testing.
+
+Irregular gaps are common. 45 of the 80 training trips contain at least one gap longer than 5 s, and a few contain very long pauses, up to about 42 hours in trip 90 and 15 hours in trip 78. These gaps motivated the time-dependent transition model in the HMM.
+
+The road networks are large relative to the trajectories (median about 19,500 arcs per training trip, up to roughly 300,000) and each has several weakly connected components, but no isolated nodes. Candidate generation therefore has to be spatially indexed rather than brute force.
+
+The most important finding concerns the reference routes. For most trips nearly every GPS point lies within 30 m of the supplied route (median share 0.999). Trips 33 and 54 are exceptions: only 29% and 11% of their points are within 30 m of the route, and the median distance is 122 m and 139 m respectively. In trip 54 the GPS follows the route for the first part of the drive and then runs about 130 m away from it for the remaining 150 km. The supplied route therefore cannot be treated as error-free ground truth, which is why we introduced the 30 m trusted-label rule. No student-testing trip has this problem.

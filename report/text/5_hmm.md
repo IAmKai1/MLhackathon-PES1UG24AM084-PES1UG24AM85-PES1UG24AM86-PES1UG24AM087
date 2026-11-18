@@ -1,0 +1,15 @@
+The classifier scores each observation independently, so it can select arcs that are not connected, for example jumping to a side street for one second and back. The HMM adds the two pieces of information the classifier ignores: the order of observations and the road network's connectivity. The implementation is in pathsnap/hmm.py; pathsnap/pipeline.py runs it.
+
+**Q1. Hidden states.** At each time step the hidden states are that observation's candidate arcs (up to ten). Each state keeps its arc id and the observation's projected position along the arc, so the candidate-to-road-segment correspondence is preserved.
+
+**Q2. Emission probabilities.** The emission score of a candidate is w * log P(reference arc | features), where P is the tuned classifier's probability, clipped below at 1e-6, and w is an emission weight.
+
+**Q3. Transition probabilities.** Between candidate i at step t-1 and candidate j at step t, log P(j | i) = -|d_route - d_gps| / beta_t. Here d_gps is the straight-line distance between the two GPS fixes, and d_route is the driving distance through the network from i's projected position to j's: along the same arc if i and j are equal, otherwise the rest of arc i, plus a shortest path from its end node to the start node of arc j, plus the part of arc j up to the projection. Shortest paths use a bounded Dijkstra search limited to 3 * d_gps + 150 m, with caching. A transition is likely when the vehicle would have driven roughly as far as the GPS moved.
+
+**Viterbi recurrence.** delta_t(j) = max over i of [delta_(t-1)(i) + log P(j | i)] + emission_t(j), with back-pointers storing the best i. The decoded route follows the back-pointers from the best final state. Working in log space avoids numerical underflow over thousands of steps.
+
+**Q4. Missing candidates and GPS gaps.** Candidate generation widens its radius (120, 250, 500 m) so almost every observation has candidates; an observation with none is skipped by the decoder and takes the previous observation's predicted arc. For gaps, the transition scale grows with the time difference, beta_t = beta * sqrt(max(dt, 1)), so longer gaps tolerate larger differences between route and GPS distance.
+
+**Q5. Disconnected segments.** A pair of candidates with no path within the search limit gets a transition of minus infinity. If every transition into a step is minus infinity, so the road network offers no way to connect consecutive fixes, the decoder records a chain break and restarts from that step using emissions only. The earlier segment keeps its own best path, so one disconnection cannot corrupt the whole route.
+
+**Decoder tuning.** Multiplying both beta and w by the same factor rescales every path score equally, so only the product beta * w changes the decoded route. We searched this product from 0.5 to 80 on 16 training trips, using out-of-fold classifier probabilities from 5-fold group cross-validation, so neither the classifier nor the decoder saw those trips' labels during training. The best product was 3 (beta = 1.5, w = 2.0), and it is an interior optimum: product 2 scored 0.9242 and product 3 scored 0.9263, against 0.8875 for the classifier alone.
